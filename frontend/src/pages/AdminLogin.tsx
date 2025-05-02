@@ -21,7 +21,7 @@ const AdminLogin: React.FC = () => {
             secondContent={
               <div className="w-full h-full grid place-items-center bg-black">
                 <p className="font-extrabold text-3xl text-white">
-                  Project Nexus&nbsp;!
+                  TeamVerse &nbsp;!
                 </p>
               </div>
             }

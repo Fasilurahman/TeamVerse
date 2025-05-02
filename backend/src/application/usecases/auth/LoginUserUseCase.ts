@@ -11,17 +11,31 @@ export class LoginUseCase{
 
     async execute(email: string, password: string): Promise<{user: any, accessToken: string; refreshToken: string } | null>{
         if (!email || !password) {
-            throw new Error(
-                MESSAGES.GENERAL.REQUIRED_FIELDS
-            );
+            throw {
+                statusCode: 400,
+                message: MESSAGES.GENERAL.REQUIRED_FIELDS
+            }
+           
         }
         const user = await this.userRepository.findByEmail(email);
-        if(!user) throw new Error(MESSAGES.USER.USER_NOT_FOUND);
+        console.log(user,'user')
+        if(!user) {
+            throw {
+                statusCode: 404,
+                message: MESSAGES.USER.USER_NOT_FOUND
+            }
+        }
         if(user.isBlocked){
-            throw new Error(MESSAGES.USER.USER_BLOCKED);
+            throw {
+                statusCode: 403,
+                message: MESSAGES.USER.USER_BLOCKED
+            }
         }
         if (!user.password) {
-            throw new Error(MESSAGES.USER.USER_DOES_NOT_HAVE_PASSWORD);
+            throw {
+                statusCode: 400,
+                message: MESSAGES.USER.USER_DOES_NOT_HAVE_PASSWORD
+            }
         }
         const isPasswordValid = await this.authService.comparePasswords(password,user.password);
         if (!isPasswordValid) {

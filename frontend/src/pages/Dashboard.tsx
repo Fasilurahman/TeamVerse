@@ -26,7 +26,7 @@ import NotificationView from "../components/dashboard/NotificationView";
 import { RootState } from "../redux/store";
 import UserProfileCard from "../components/Design/UserProfileCard";
 import UserMenuDropdown from "../components/Design/UserMenuDropdown";
-import { fetchUserDashboardStats } from "../services/ChartService";
+import { fetchUserChartData, fetchUserDashboardStats } from "../services/ChartService";
 
 const S3_PATH = import.meta.env.VITE_AWSS3_PATH
 
@@ -39,11 +39,49 @@ interface Stat {
   color: string;
 }
 
+const colorMap: Record<string, string> = {
+  Development: "bg-indigo-500",
+  Design: "bg-green-500",
+  Marketing: "bg-pink-500",
+  Research: "bg-yellow-500",
+  Default: "bg-gray-400",
+};
 
 function Dashboard() {
   const [showNotifications, setShowNotifications] = useState(false);
   const [stats, setStats] = useState<Stat[]>([]);
+  const [performanceData, setPerformanceData] = useState<{ name: string; value: number }[]>([]);
+  const [categoryData, setCategoryData] = useState<{ name: string; value: number; color: string }[]>([]);
   const notificationRef = useRef<HTMLDivElement>(null);
+  
+  
+  const { user } = useSelector((state: RootState) => state.auth);
+  console.log(user, "user");
+
+  
+  const fetchDashboard = async (id: string) => {
+    try {
+      const res = await fetchUserChartData(id);
+      console.log(res, "dashboard response");
+
+      setPerformanceData(res.performance);
+
+      const coloredCategoryData = res.distribution.map((item: { name: string; value: number }) => ({
+        ...item,
+        color: colorMap[item.name] || colorMap["Default"],
+      }));
+
+      setCategoryData(coloredCategoryData);
+    } catch (error) {
+      console.error("Error fetching dashboard data:", error);
+    }
+  };
+
+
+    useEffect(() => {
+      if(!user)return
+      fetchDashboard(user.id);
+    }, []);
 
 
   useEffect(() => {
@@ -59,7 +97,6 @@ function Dashboard() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  const { user } = useSelector((state: RootState) => state.auth);
 
 
   const fetchStats = async ()=>{
@@ -96,7 +133,7 @@ function Dashboard() {
             </div>
             <div>
               <h1 className="font-display font-bold text-xl bg-gradient-to-r from-white to-slate-300 bg-clip-text text-transparent">
-                TeamFlow
+                TeamVerse
               </h1>
               <span className="text-xs font-medium text-indigo-400">
                 Enterprise Suite
@@ -129,16 +166,6 @@ function Dashboard() {
                     className="pl-9 pr-4 py-2 w-64 bg-slate-800/50 text-sm rounded-lg border border-slate-700/50 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500/50 transition-all duration-300 placeholder-slate-400"
                   />
                 </div>
-                <nav className="flex items-center gap-2">
-                  {["Dashboard", "Projects", "Tasks", "Reports"].map((item) => (
-                    <button
-                      key={item}
-                      className="px-3 py-1.5 text-sm text-slate-400 hover:text-white transition-colors duration-200"
-                    >
-                      {item}
-                    </button>
-                  ))}
-                </nav>
               </div>
 
               <div className="flex items-center gap-6">
@@ -285,14 +312,7 @@ function Dashboard() {
                 <div className="h-[300px]">
                   <ResponsiveContainer width="100%" height="100%">
                     <AreaChart
-                      data={[
-                        { name: "Jan", value: 400 },
-                        { name: "Feb", value: 300 },
-                        { name: "Mar", value: 600 },
-                        { name: "Apr", value: 800 },
-                        { name: "May", value: 500 },
-                        { name: "Jun", value: 900 },
-                      ]}
+                      data={performanceData}
                       margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
                     >
                       <defs>
@@ -353,41 +373,40 @@ function Dashboard() {
                   <ResponsiveContainer width="100%" height="100%">
                     <PieChart>
                       <Pie
-                        data={[
-                          { name: "Development", value: 45 },
-                          { name: "Design", value: 25 },
-                          { name: "Marketing", value: 30 },
-                        ]}
+                        data={categoryData}
                         cx="50%"
                         cy="50%"
                         innerRadius={60}
                         outerRadius={80}
                         paddingAngle={5}
-                        dataKey="value" // Add this line
+                        dataKey="value"
                       >
-                        <Cell fill="#6366f1" />
-                        <Cell fill="#a855f7" />
-                        <Cell fill="#ec4899" />
+                        {categoryData.map((entry, index) => (
+                          <Cell 
+                            key={`cell-${index}`} 
+                            fill={entry.color === "bg-indigo-500" ? "#6366f1" : "#a855f7"} 
+                          />
+                        ))}
                       </Pie>
+                      <Tooltip
+                        contentStyle={{
+                          backgroundColor: "rgba(15, 23, 42, 0.9)",
+                          border: "1px solid rgba(99, 102, 241, 0.2)",
+                          borderRadius: "8px",
+                        }}
+                        formatter={(value) => [`${value}`, 'Projects']}
+                      />
                     </PieChart>
                   </ResponsiveContainer>
                 </div>
                 <div className="space-y-4">
-                  {[
-                    {
-                      label: "Development",
-                      value: "45%",
-                      color: "bg-indigo-500",
-                    },
-                    { label: "Design", value: "25%", color: "bg-purple-500" },
-                    { label: "Marketing", value: "30%", color: "bg-pink-500" },
-                  ].map((item, index) => (
+                  {categoryData.map((item, index) => (
                     <div key={index} className="flex items-center gap-3">
                       <div className={`w-3 h-3 rounded-full ${item.color}`} />
                       <div className="flex-1">
                         <div className="flex items-center justify-between">
                           <span className="text-sm font-medium text-slate-300">
-                            {item.label}
+                            {item.name}
                           </span>
                           <span className="text-sm font-medium text-white">
                             {item.value}
@@ -396,7 +415,7 @@ function Dashboard() {
                         <div className="mt-1 h-1 rounded-full bg-slate-700/50">
                           <div
                             className={`h-full rounded-full ${item.color}`}
-                            style={{ width: item.value }}
+                            style={{ width: `${item.value * 50}%` }}
                           />
                         </div>
                       </div>

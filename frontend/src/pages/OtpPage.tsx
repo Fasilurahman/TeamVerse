@@ -173,7 +173,7 @@ const handleSubmit = async (e: React.FormEvent) => {
                     <Lock className="w-12 h-12 text-white/80" />
                   </div>
                   <h1 className="font-extrabold text-5xl text-transparent bg-clip-text bg-gradient-to-r from-white to-white/80">
-                    Project Nexus
+                    TeamVerse
                   </h1>
                   <p className="text-indigo-200 text-lg font-light tracking-wide">
                     Secure. Verify. Access.

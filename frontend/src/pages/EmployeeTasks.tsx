@@ -339,7 +339,7 @@ const EmployeeTasks = () => {
             </div>
             <div>
               <h1 className="font-display font-bold text-xl bg-gradient-to-r from-white to-slate-300 bg-clip-text text-transparent">
-                Project Nexus
+                TeamVerse
               </h1>
               <span className="text-xs font-medium text-indigo-400">
                 Enterprise Suite

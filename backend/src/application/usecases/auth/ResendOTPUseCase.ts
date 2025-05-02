@@ -14,7 +14,7 @@ export class ResendOTPUseCase {
         const {email} = input;
         if(!email){
             throw {
-                status: STATUS_CODES.BAD_REQUEST,
+                statusCode: STATUS_CODES.BAD_REQUEST,
                 message: MESSAGES.AUTH.EMAIL_REQUIRED
             }
         }
@@ -22,7 +22,7 @@ export class ResendOTPUseCase {
         const userDetails = this.authservice.getUserDetailsByEmail(email);
         if(!userDetails){
             throw {
-                status: STATUS_CODES.NOT_FOUND,
+                statusCode: STATUS_CODES.NOT_FOUND,
                 message: MESSAGES.USER.USER_NOT_FOUND
             }
         }
@@ -30,8 +30,8 @@ export class ResendOTPUseCase {
         const otp = this.authservice.generateOTP(email);
         console.log(`OTP for ${email}: ${otp}`);
 
-        const subject = 'Resend OTP - Project Nexus';
-        const message = `Hello ${userDetails.name},\n\nYour OTP is: ${otp}\nThis OTP is valid for 5 minutes.\n\nThank you, Project Nexus Team`;
+        const subject = 'Resend OTP - TeamVerse';
+        const message = `Hello ${userDetails.name},\n\nYour OTP is: ${otp}\nThis OTP is valid for 5 minutes.\n\nThank you, TeamVerse  Team`;
     
         await this.emailService(email, subject, message);
 

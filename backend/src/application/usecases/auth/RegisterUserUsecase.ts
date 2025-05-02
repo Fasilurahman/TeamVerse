@@ -3,6 +3,7 @@ import { IUserRepository } from "../../../domain/repositories/IUserRepository";
 import { User } from "../../../domain/entities/User";
 import { AuthService } from "../../../infrastructure/services/AuthService";
 import { sendEmail } from "../../../infrastructure/services/EmailService";
+import { STATUS_CODES } from "../../../shared/constants/statusCodes";
 import { MESSAGES } from "../../../shared/constants/ResponseMessages";
 
 export class RegisterUseCase {
@@ -15,7 +16,10 @@ export class RegisterUseCase {
 
     if (!name || !email || !password) {
             
-      throw new Error(MESSAGES.GENERAL.REQUIRED_FIELDS,);
+      throw {
+        statusCode: STATUS_CODES.BAD_REQUEST,
+        message: MESSAGES.GENERAL.REQUIRED_FIELDS
+      }
     }
 
     const existingUser = await this.userRepository.findByEmail(email);
@@ -57,8 +61,8 @@ export class RegisterUseCase {
 
     this.authService.storeUserDetailsWithOTP(email, { name, email, password });
 
-    const subject = 'Your OTP for Project Nexus';
-    const message = `Hello ${name},\n\nYour OTP for verifying your account is: ${otp}\nThis OTP is valid for 5 minutes.\n\nThank you, Project Nexus Team`;
+    const subject = 'Your OTP for TeamVerse';
+    const message = `Hello ${name},\n\nYour OTP for verifying your account is: ${otp}\nThis OTP is valid for 5 minutes.\n\nThank you, TeamVerse  Team`;
 
     await sendEmail(email, subject, message);
 

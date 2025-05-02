@@ -144,12 +144,10 @@ const App: React.FC = () => {
           }
         />
 
-        {/* <Route path="/profile" element={<UserProfile />} /> */}
+
         <Route path="/register" element={<Register />} />
         <Route path="/otp" element={<OtpPage />} />
         <Route path="/home" element={<Home />} />
-        {/* <Route path="/employee-task" element={<EmployeeTasks />} /> */}
-        {/* <Route path="/kanban-board/:taskId" element={<KanbanBoard />} /> */}
         <Route path="*" element={<Login />} />
         <Route path="/request-reset" element={<RequestResetLink />} />
         <Route path="/reset-password/:token" element={<ResetPassword />} />

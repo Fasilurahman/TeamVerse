@@ -30,7 +30,7 @@ import api from "../api/axiosInstance";
 const testimonials: TestimonialProps[] = [
   {
     content:
-      "Project Nexus has transformed how our team collaborates. The AI-powered insights have helped us deliver projects 50% faster.",
+      "TeamVerse  has transformed how our team collaborates. The AI-powered insights have helped us deliver projects 50% faster.",
     author: "Sarah Chen",
     role: "CTO",
     company: "TechCorp",
@@ -211,7 +211,7 @@ const Home: React.FC = () => {
                 </motion.div>
               </div>
               <span className="ml-2 text-xl font-bold text-gray-900">
-                Project Nexus
+                TeamVerse 
               </span>
             </motion.div>
 

@@ -1,11 +1,11 @@
 // src/components/Auth/RegisterForm.tsx
-import React,{useState} from 'react';
+import React,{use, useState} from 'react';
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useNavigate, Link } from 'react-router-dom';
 import { registerService } from '../../services/AuthService';
-import { useSelector } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 import { useEffect } from 'react';
 import {  RootState } from '../../redux/store';
 import { googleAuthService } from '../../services/AuthService';
@@ -14,6 +14,7 @@ import { GoogleLogin } from '@react-oauth/google';
 import Box from "@mui/material/Box";
 import CircularProgress from "@mui/material/CircularProgress";
 import { registerSchema } from '../../schemas/registerSchema';
+import { setAuth } from '../../redux/authSlice';
 
 type RegisterFormData = z.infer<typeof registerSchema>;
 
@@ -28,7 +29,7 @@ const RegisterForm: React.FC = () => {
 
   const navigate = useNavigate();
 
-  
+  const dispatch = useDispatch();
   
 
 
@@ -80,7 +81,10 @@ const RegisterForm: React.FC = () => {
   
       if (result?.accessToken) {
         const token = result.accessToken;
+        const user = result.user;
+        console.log('Google auth result:', result);
         localStorage.setItem('accessToken', token);
+        dispatch(setAuth({ token, user }));
         toast.success('Login successfull.')
         navigate('/dashboard')
       } else {

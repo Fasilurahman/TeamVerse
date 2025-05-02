@@ -121,7 +121,10 @@ const LoginForm: React.FC = () => {
 
       if (result?.accessToken) {
         const token = result.accessToken;
+        const user = result.user;
+
         localStorage.setItem("accessToken", token);
+        dispatch(setAuth({ token, user }));
         toast.success("Login successful.");
         navigate("/dashboard");
       } else {

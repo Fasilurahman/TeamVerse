@@ -394,7 +394,7 @@ const TeamLeadProjectPage: React.FC = () => {
   const filteredEmployees = employees.filter(
     (employee) =>
       employee.name.toLowerCase().includes(searchQuery.toLowerCase()) &&
-      !selectedEmployees.some((selected) => selected.id === employee.id)
+      !selectedEmployees.some((selected) => selected?.id === employee?.id)
   );
 
   if (loading) {
@@ -438,7 +438,7 @@ const TeamLeadProjectPage: React.FC = () => {
             </div>
             <div>
               <h1 className="font-display font-bold text-xl bg-gradient-to-r from-white to-slate-300 bg-clip-text text-transparent">
-                Project Nexus
+                TeamVerse 
               </h1>
               <span className="text-xs font-medium text-indigo-400">
                 Enterprise Suite

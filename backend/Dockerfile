@@ -1,18 +1,13 @@
-FROM node:20
+FROM node:18-alpine
 
 WORKDIR /app
 
-# Copy package files
-COPY package.json package-lock.json ./
+COPY package*.json ./
 
-# Install all dependencies (including dev dependencies)
 RUN npm install
 
-# Copy all source files
 COPY . .
 
-# Build TypeScript files
-RUN npm run build
+EXPOSE 5000
 
-# Start the app
-CMD ["node", "dist/server.js"]
+CMD [ "npm", "start" ]

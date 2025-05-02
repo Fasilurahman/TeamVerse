@@ -86,6 +86,7 @@ export class AuthController {
                 refreshToken
             });
         } catch (error) {
+            console.log('error in login',error)
             next(error);
         }
     }

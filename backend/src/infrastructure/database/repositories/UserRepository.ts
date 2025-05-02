@@ -300,7 +300,6 @@ export class UserRepository implements IUserRepository {
         .limit(limit);
 
       const totalUsers = await UserModel.countDocuments();
-      console.log("Total users:", users);
 
       return {
         users: users.map(
@@ -351,10 +350,43 @@ export class UserRepository implements IUserRepository {
   }
 
   async findUserById(id: string) {
-    const user = await UserModel.findById(id)
-      .populate('subscriptionId');
+    try {
+      const objectId = new mongoose.Types.ObjectId(id);
 
-    return user;
+      const user = await UserModel.findById(objectId).populate(
+        "subscriptionId"
+      );
+      if (!user) return null;
+
+      if (user.subscriptionId) {
+        return user;
+      }
+
+      const teams = await TeamModel.find({
+        $or: [{ members: objectId }, { teamLeadId: objectId }],
+      }).populate({
+        path: "teamLeadId",
+        populate: { path: "subscriptionId" },
+      });
+
+
+      for (const team of teams) {
+        const teamLead: any = team.teamLeadId;
+
+        if (teamLead && teamLead.subscriptionId) {
+          const updatedUser = user.toObject();
+          updatedUser.subscriptionId = teamLead.subscriptionId;
+          (updatedUser as any).isSubscribedThroughTeam = true;
+          (updatedUser as any).inheritedFrom = teamLead._id;
+
+          return updatedUser;
+        }
+      }
+
+      return user;
+    } catch (error) {
+      console.error("❌ Error in findUserById:", error);
+      throw error;
+    }
   }
-  
 }

@@ -17,14 +17,17 @@ export class GoogleAuthUseCase {
       accessToken
     );
     if (!googleUserData || !googleUserData.sub) {
-      throw new Error(MESSAGES.USER.INVALID_TOKEN_OR_USER_DATA_NOT_FOUND);
+      throw {
+        statusCode: STATUS_CODES.BAD_REQUEST,
+        message: MESSAGES.USER.INVALID_TOKEN_OR_USER_DATA_NOT_FOUND,
+      }
     }
 
     const { email, name, picture, sub } = googleUserData;
     let user = await this.userRepository.findByEmail(email);
     if (user?.isBlocked) {
       throw {
-        status: STATUS_CODES.FORBIDDEN,
+        statusCode: STATUS_CODES.FORBIDDEN,
         message: MESSAGES.USER.USER_BLOCKED,
       };
     }

@@ -16,9 +16,8 @@ export function PricingCard({ id,title, price, billingCycle, description, featur
   const [subscriptionDetails, setSubscriptionDetails] = useState<any>(null); 
   const [isPaymentProcessing, setIsPaymentProcessing] = useState(false);
 
-  console.log(isSubscribed,'isSubscribed')
   const userid = useSelector((state: RootState) => state.auth.user?.id);
-  console.log(userid,'userrrrrrrr')
+
   const fetchDetails = async (id: string) => {
     console.log('fetchign detains')
     try {

@@ -16,7 +16,7 @@ export class RefreshTokenUseCase {
 
     if (!refreshToken) {
       throw {
-        status: STATUS_CODES.UNAUTHORIZED,
+        statusCode: STATUS_CODES.UNAUTHORIZED,
         message: MESSAGES.AUTH.MISSING_REFRESH_TOKEN,
       };
     }
@@ -30,14 +30,14 @@ export class RefreshTokenUseCase {
         );
     } catch (error) {
         throw {
-            status: STATUS_CODES.UNAUTHORIZED,
+            statusCode: STATUS_CODES.UNAUTHORIZED,
             message: MESSAGES.AUTH.INVALID_OR_EXPIRED_OTP,
         };
     }
     const user = await this.userRepository.findByEmail(decoded.email);
     if(!user){
         throw {
-            status: STATUS_CODES.UNAUTHORIZED,
+            statusCode: STATUS_CODES.UNAUTHORIZED,
             message: MESSAGES.AUTH.USER_NOT_FOUND,
         }
     }

@@ -8,7 +8,7 @@ import morgan from "morgan";
 import logger from "./infrastructure/logging/logger";
 import { errorHandler } from "./middleware/errorHandler";
 import routers from "./presentation/routes/routers";
-import "../src/cron/sprintCheck.cron";
+import './cron/sprintCheck.cron';
 import { generalLimiter } from "./middleware/rateLimiter";
 dotenv.config();
 connectDB();

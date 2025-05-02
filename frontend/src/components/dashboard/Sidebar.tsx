@@ -1,12 +1,11 @@
 import { Link, useLocation } from "react-router-dom";
 import { motion } from "framer-motion";
-import { LayoutDashboard, Users, Target,  Calendar, MessageSquare, Activity, Settings, Video } from "lucide-react";
+import { LayoutDashboard, Users, Target, MessageSquare, Activity, Settings, Video } from "lucide-react";
 
 const navItems = [
   { icon: LayoutDashboard, label: "Overview", path: "/dashboard" },
   { icon: Users, label: "Team Members", path: "/team-members" },
   { icon: Target, label: "Projects", path: "/projects" },
-  { icon: Calendar, label: "Schedule", path: "/schedule" },
   { icon: Video, label: "Meetings", path: "/meetings" },
   { icon: MessageSquare, label: "Messages", path: "/messages", badge: "3" },
   { icon: Activity, label: "All Tasks", path: "/employee-task" },

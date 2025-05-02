@@ -15,7 +15,7 @@ export class ResetPasswordUseCase {
       const payload = this.authService.verifyResetToken(token);
       if (!payload) {
         throw {
-          status: STATUS_CODES.BAD_REQUEST,
+          statusCode: STATUS_CODES.BAD_REQUEST,
           message: MESSAGES.AUTH.INVALID_OR_EXPIRED_TOKEN,
         };
       }
@@ -25,7 +25,7 @@ export class ResetPasswordUseCase {
       const user = await this.userRepository.findByEmail(email);
       if (!user) {
         throw {
-          status: STATUS_CODES.NOT_FOUND,
+          statusCode: STATUS_CODES.NOT_FOUND,
           message: MESSAGES.USER.USER_NOT_FOUND,
         };
       }

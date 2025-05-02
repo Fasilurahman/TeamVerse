@@ -152,7 +152,7 @@ function UsersPage() {
                 </tr>
               </thead>
               <tbody>
-                {usersData.map((user, idx) => (
+                {usersData?.map((user, idx) => (
                   <motion.tr
                     key={user.id}
                     initial={{ opacity: 0, y: 10 }}

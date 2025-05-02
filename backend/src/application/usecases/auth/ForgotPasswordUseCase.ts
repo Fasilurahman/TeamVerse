@@ -10,7 +10,7 @@ export class ForgotPasswordUseCase {
     const user = await this.userRepository.findByEmail(email);
     if (!user) {
       throw {
-        status: STATUS_CODES.NOT_FOUND,
+        statusCode: STATUS_CODES.NOT_FOUND,
         message: MESSAGES.USER.USER_NOT_FOUND,
       };
     };

@@ -5,7 +5,7 @@
   "type": "commonjs",
   "scripts": {
     "build": "tsc",
-    "start": "nodemon --watch \"src/**/*.ts\" --exec ts-node src/server.ts",
+    "start": "node dist/server.js",
     "dev": "nodemon --watch 'src/**/*.ts' --exec 'ts-node' src/framework/web/server.ts",
     "test": "echo \"Error: no test specified\" && exit 1"
   },

@@ -34,35 +34,35 @@ import { createMeeting, fetchAllMeetings } from "../services/MeetingService";
 import VideoConference from "../components/videoConference/VideoConference";
 import { fetcUserDetailsById } from "../services/UserService";
 import { Link } from "react-router-dom";
+import { toast } from "sonner";
 
 const Meetings: React.FC = () => {
   const [showNotifications, setShowNotifications] = useState<boolean>(false);
   const [activeTab, setActiveTab] = useState<"upcoming" | "past">("upcoming");
   const [searchQuery, setSearchQuery] = useState<string>("");
-  const [showNewMeetingModal, setShowNewMeetingModal] =
-    useState<boolean>(false);
+  const [showNewMeetingModal, setShowNewMeetingModal] = useState<boolean>(false);
   const [showDetailsModal, setShowDetailsModal] = useState<boolean>(false);
   const [showJoinModal, setShowJoinModal] = useState<boolean>(false);
   const [selectedMeeting, setSelectedMeeting] = useState<Meeting | null>(null);
-  const [showVideoConference, setShowVideoConference] =
-    useState<boolean>(false);
+  const [showVideoConference, setShowVideoConference] = useState<boolean>(false);
   const [projects, setProjects] = useState<IProjectWithTeamAndMembers[]>([]);
   const [meetings, setMeetings] = useState<Meeting[]>([]);
   const [hasMeetingFeature, setHasMeetingFeature] = useState(false);
 
-
-  const user = useSelector((state: any) => state.auth.user);
-
+  
   const handleViewDetails = (meeting: Meeting) => {
     setSelectedMeeting(meeting);
     setShowDetailsModal(true);
   };
 
+  const user = useSelector((state: any) => state.auth.user);
+
   const fetchUser = async () => {
     try {
       if (!user) return;
+      console.log('sending request to backend')
       const result = await fetcUserDetailsById(user.id);
-      console.log(result?.subscriptionId?.features, "features");
+      console.log(result, "features12345678910");
       setHasMeetingFeature((result?.subscriptionId?.features || []).includes("Meeting"));
     } catch (error) {
       console.error("Error fetching user:", error);
@@ -73,11 +73,10 @@ const Meetings: React.FC = () => {
     fetchUser();
   }, []);
 
-  console.log(selectedMeeting,'selected meeting')
+
 
   const fetchMeetings = async () => {
     try {
-      console.log('fetching the meeting')
       const result = await fetchAllMeetings();
       setMeetings(result);
     } catch (error) {
@@ -94,8 +93,25 @@ const Meetings: React.FC = () => {
   };
 
   const handleStartMeeting = () => {
-    setShowJoinModal(false);
-    setShowVideoConference(true);
+    if (selectedMeeting) {
+      const { date, time, duration } = selectedMeeting;
+  
+      const [hours, minutes] = time.split(':').map(Number);
+      const startDateTime = new Date(date);
+      startDateTime.setHours(hours, minutes, 0, 0);
+  
+      const endDateTime = new Date(startDateTime.getTime() + parseFloat(duration) * 60 * 60 * 1000);
+  
+      const now = new Date();
+  
+      if (now > endDateTime) {
+        toast.info('This meeting has already ended.');
+        return;
+      }
+  
+      setShowJoinModal(false);
+      setShowVideoConference(true);
+    }
   };
 
   const fetchAllProjects = async () => {
@@ -142,7 +158,7 @@ const Meetings: React.FC = () => {
               </div>
               <div>
                 <h1 className="font-display font-bold text-xl bg-gradient-to-r from-white to-slate-300 bg-clip-text text-transparent">
-                  TeamFlow
+                  TeamVerse
                 </h1>
                 <span className="text-xs font-medium text-indigo-400">
                   Enterprise Suite
@@ -289,7 +305,7 @@ const Meetings: React.FC = () => {
             </div>
             <div>
               <h1 className="font-display font-bold text-xl bg-gradient-to-r from-white to-slate-300 bg-clip-text text-transparent">
-                TeamFlow
+                TeamVerse
               </h1>
               <span className="text-xs font-medium text-indigo-400">
                 Enterprise Suite

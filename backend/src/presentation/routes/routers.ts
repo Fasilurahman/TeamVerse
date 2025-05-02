@@ -12,7 +12,7 @@ import sprintRoutes from "./sprintRoutes";
 import chartRoutes from "./chartRoutes";
 import { StripeWebhookController } from "../controllers/webhookController";
 import meetingRoutes from "./meetingRoutes"
-import { authMiddleware } from "../../middleware/authMiddleware";
+
 
 const routers = Router()
 const stripeWebhook = new StripeWebhookController()

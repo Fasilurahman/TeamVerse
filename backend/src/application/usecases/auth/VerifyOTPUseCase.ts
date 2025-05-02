@@ -24,7 +24,7 @@ export class VerifyOTPUseCase {
     const { email, otp, role } = input;
     if(!email || !otp){
       throw {
-        status: 400,
+        statusCode: 400,
         message: MESSAGES.AUTH.EMAIL_AND_OTP_REQUIRED
       }
     }
@@ -34,7 +34,7 @@ export class VerifyOTPUseCase {
     console.log(userDetails,'3')
     if(!userDetails){
       throw {
-        status: STATUS_CODES.BAD_REQUEST,
+        statusCode: STATUS_CODES.BAD_REQUEST,
         message: MESSAGES.AUTH.OTP_INVALID
       }
     }

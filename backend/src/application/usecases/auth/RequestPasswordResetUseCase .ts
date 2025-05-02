@@ -16,13 +16,13 @@ export class RequestPasswordResetUseCase {
         const user = await this.userRepository.findByEmail(email);
         if(!email){
             throw {
-                status: STATUS_CODES.BAD_REQUEST,
+                statusCode: STATUS_CODES.BAD_REQUEST,
                 message: MESSAGES.AUTH.EMAIL_REQUIRED
             }
         }
         if(!user?.password){
             throw {
-                status: STATUS_CODES.BAD_REQUEST,
+                statusCode: STATUS_CODES.BAD_REQUEST,
                 message: MESSAGES.USER.USER_DOES_NOT_HAVE_PASSWORD
             }
         }
@@ -30,7 +30,7 @@ export class RequestPasswordResetUseCase {
         const resetToken = this.authService.generateResetToken(email);
         const resetLink = `${process.env.CLIENT_URL}/reset-password/${resetToken}`;
 
-        const subject = 'Password Reset - Project Nexus';
+        const subject = 'Password Reset - TeamVerse';
         const message = `
             <p>Hello ${user.name},</p>
             <p>You requested a password reset. Click the link below to reset your password:</p>
