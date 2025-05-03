@@ -9,7 +9,7 @@ import { initSocket } from './infrastructure/services/socketService';
 const server = http.createServer(app);
 const io = new SocketIOServer(server, {
   cors: {
-    origin: ['http://localhost:5000', 'http://127.0.0.1:5000', 'http://localhost:5173'],
+    origin: process.env.CLIENT_URL?.split(','),
     methods: ['GET', 'POST'],
     credentials: true
   },

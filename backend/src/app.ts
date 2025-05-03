@@ -16,13 +16,17 @@ connectDB();
 const app = express();
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
+const allowedOrigins = process.env.CLIENT_URL?.split(",") || [];
+
 app.use(
   cors({
-    origin: "http://localhost:5173",
+    origin: allowedOrigins,
     credentials: true,
     methods: ["GET", "POST", "PUT", "DELETE", "PATCH"],
   })
 );
+
+
 
 app.use(morgan("dev"));
 app.use(morgan('combined',{
