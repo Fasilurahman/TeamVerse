@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import  { useEffect, useState } from 'react';
 import { BarChart2, Users } from 'lucide-react';
 import Sidebar from '../components/Design/Sidebar';
 import Header from '../components/Design/Header';

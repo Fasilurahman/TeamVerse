@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { ZegoUIKitPrebuilt } from '@zegocloud/zego-uikit-prebuilt';
+import { ZegoUIKitPrebuilt, InRoomMessageInfo } from '@zegocloud/zego-uikit-prebuilt';
 import api from '../../api/axiosInstance';
 
 interface ChatMessage {
@@ -29,10 +29,10 @@ interface RoomUser {
   userName: string;
 }
 
-const VideoConference = ({ 
-  roomID, 
-  user, 
-  role = 'Host', 
+const VideoConference = ({
+  roomID,
+  user,
+  role = 'Host',
   onLeave
 }: VideoConferenceProps) => {
   console.log("VideoConference received roomID:", roomID);
@@ -51,7 +51,7 @@ const VideoConference = ({
     if (hasSummaryBeenSent || messages.length === 0) {
       return null;
     }
-    
+
     try {
       console.log("Sending messages to backend:", messages);
       const endTime = new Date();
@@ -61,7 +61,7 @@ const VideoConference = ({
         startTime: startTime.toISOString(),
         endTime: endTime.toISOString()
       });
-      
+
       console.log('Meeting summary generated:', response.data);
       setHasSummaryBeenSent(true);
       return response.data;
@@ -71,9 +71,7 @@ const VideoConference = ({
     }
   };
 
-
   useEffect(() => {
-
     if (isLastUserToLeave && !hasSummaryBeenSent && messages.length > 0) {
       console.log("Current user is the last to leave. Sending summary...");
       sendMessagesToBackend();
@@ -91,7 +89,7 @@ const VideoConference = ({
     const initializeZego = async () => {
       const appID = import.meta.env.VITE_APP_ID;
       const serverSecret = import.meta.env.VITE_SERVER_SCRET;
-      
+
       if (!roomID || roomID.trim() === '') {
         console.error("Room ID is empty or undefined!");
         return;
@@ -114,7 +112,7 @@ const VideoConference = ({
 
         const zp = ZegoUIKitPrebuilt.create(kitToken);
         zegoRef.current = zp;
-        
+
         if (!zp) {
           console.error("Failed to create ZegoUIKitPrebuilt instance");
           return;
@@ -130,8 +128,6 @@ const VideoConference = ({
           showUserList: true,
           showLayoutButton: true,
           showPinButton: true,
-          showPreviewMicrophoneButton: true,
-          showPreviewCameraButton: true,
           turnOnMicrophoneWhenJoining: true,
           turnOnCameraWhenJoining: true,
           showMyCameraToggleButton: true,
@@ -145,9 +141,9 @@ const VideoConference = ({
           onUserJoin: (users) => {
             console.log("Users joined:", users);
             setIsRoomEmpty(false);
-            
+
             setParticipants((prev: any) => {
-              const newUsers = users.filter(newUser => 
+              const newUsers = users.filter(newUser =>
                 !prev.some((existingUser: any) => existingUser.userID === newUser.userID)
               );
               const updated = [...prev, ...newUsers];
@@ -155,27 +151,27 @@ const VideoConference = ({
               return updated;
             });
           },
-          
+
           onUserLeave: (users) => {
             console.log("Users left:", users);
-          
+
             const leftUserIds = users.map(u => u.userID);
-            
+
             setParticipants(prev => {
               const remaining = prev.filter(p => !leftUserIds.includes(p.userID));
               console.log("Remaining participants after leave:", remaining);
-              
+
               if (remaining.length === 0) {
                 console.log("Room is now empty, setting isRoomEmpty flag");
                 setIsRoomEmpty(true);
               }
-              
+
               return remaining;
             });
           },
           onLeaveRoom: async () => {
             console.log("Current user leaving room manually");
-            
+
             if (participants.length <= 1 && !hasSummaryBeenSent && messages.length > 0) {
               console.log("Current user is the last one. Sending summary before leaving...");
               try {
@@ -184,10 +180,10 @@ const VideoConference = ({
                 console.error("Failed to send messages on leave:", error);
               }
             }
-            
+
             onLeave?.();
           },
-          
+
           showNonVideoUser: true,
           showOnlyAudioUser: true,
           useFrontFacingCamera: true,
@@ -198,16 +194,27 @@ const VideoConference = ({
           branding: {
             logoURL: "https://your-logo-url.com",
           },
-          onInRoomMessageReceived: (messageInfo: ChatMessage) => {
+          onInRoomMessageReceived: (messageInfo: any) => {
             console.log("Received message:", messageInfo);
-            setMessages(prev => [...prev, messageInfo]);
+            const timestamp = messageInfo.timestamp ?? Date.now();
+            const sendToAll = messageInfo.sendToAll ?? false;
+            setMessages((prev: any) => [
+              ...prev,
+              {
+                ...messageInfo,
+                timestamp,
+                sendToAll,
+                messageID: String(messageInfo.messageID),
+                fromUser: {
+                  ...messageInfo.fromUser,
+                  userName: messageInfo.fromUser.userName ?? '',
+                },
+                status: 'received',
+              },
+            ]);
           },
-          onInRoomMessageSent: (messageInfo: ChatMessage) => {
-            console.log("Message sent:", messageInfo);
-            setMessages(prev => [...prev, messageInfo]);
-          }
         });
-        
+
       } catch (error) {
         console.error("ZegoCloud initialization error:", error);
       }
@@ -219,6 +226,7 @@ const VideoConference = ({
 
     return () => {
       if (zegoRef.current) {
+        // Cleanup if needed
       }
     };
   }, [roomID, user, onLeave]);
