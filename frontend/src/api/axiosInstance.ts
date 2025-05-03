@@ -1,20 +1,32 @@
 import axios from "axios";
 
 const api = axios.create({
-  baseURL: "http://localhost:5000/api", // Backend API URL
-  withCredentials: true, // Ensures cookies are sent with requests
+  baseURL: import.meta.env.VITE_BACKEND_URL,
+  withCredentials: true,
 });
 
-// 📌 Attach token to every request
+// Token attachment
 api.interceptors.request.use((config) => {
-  const token = localStorage.getItem("token"); // Get token from localStorage
+  const token = localStorage.getItem("token");
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
   return config;
 });
 
-// 📌 Handle expired tokens (401) and attempt refresh
+// 🔒 Refresh lock mechanism
+let isRefreshing = false;
+let refreshSubscribers: ((token: string) => void)[] = [];
+
+const subscribeTokenRefresh = (cb: (token: string) => void) => {
+  refreshSubscribers.push(cb);
+};
+
+const onRefreshed = (token: string) => {
+  refreshSubscribers.forEach((cb) => cb(token));
+  refreshSubscribers = [];
+};
+
 api.interceptors.response.use(
   (response) => response,
   async (error) => {
@@ -23,20 +35,32 @@ api.interceptors.response.use(
     if (error.response?.status === 401 && !originalRequest._retry) {
       originalRequest._retry = true;
 
+      if (isRefreshing) {
+        return new Promise((resolve) => {
+          subscribeTokenRefresh((token) => {
+            originalRequest.headers.Authorization = `Bearer ${token}`;
+            resolve(api(originalRequest));
+          });
+        });
+      }
+
+      isRefreshing = true;
+
       try {
-        // Request new access token using refresh token
-        const { data } = await api.post("/auth/refresh", {});
+        const { data } = await api.post("/auth/refresh", {}, { withCredentials: true });
+        const newToken = data.accessToken;
 
-        // Store new token and retry request
-        localStorage.setItem("token", data.accessToken);
-        originalRequest.headers.Authorization = `Bearer ${data.accessToken}`;
+        localStorage.setItem("token", newToken);
+        onRefreshed(newToken);
+        originalRequest.headers.Authorization = `Bearer ${newToken}`;
 
-        return api(originalRequest); // Retry failed request with new token
+        return api(originalRequest);
       } catch (refreshError) {
-        console.error("Failed to refresh token:", refreshError);
-        localStorage.removeItem("token"); // Clear expired token
-        window.location.href = "/login"; // Redirect to login
+        localStorage.removeItem("token");
+        window.location.href = "/login";
         return Promise.reject(refreshError);
+      } finally {
+        isRefreshing = false;
       }
     }
 
