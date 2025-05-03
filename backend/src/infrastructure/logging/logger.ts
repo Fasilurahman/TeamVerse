@@ -28,7 +28,7 @@ const logFormat = winston.format.combine(
             filename: path.join(__dirname,'../../../logs/combined.log')
         }),
         new winston.transports.MongoDB({
-            db: process.env.MONGODB_URL || "mongodb://localhost:27017/logs",
+            db: process.env.MONGODB_URI || "mongodb://localhost:27017/logs",
             collection: 'server_logs',
             level: 'error',
             options: {
