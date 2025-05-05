@@ -181,6 +181,7 @@ const Messages = () => {
   useEffect(() => {
     if (socket && isConnected && chatId) {
       socket.emit("join-chat", chatId);
+      console.log('joining in chat message',chatId)
     }
   }, [socket, isConnected, chatId]);
 
