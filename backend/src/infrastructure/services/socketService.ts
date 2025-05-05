@@ -99,7 +99,7 @@ export const initSocket = (io: Server) => {
     const socketService = SocketService.getInstance(io);
 
     io.on('connection', (socket) => {
-        // console.log(`User connected: ${socket.id}`);
+        console.log(`User connected: ${socket.id}`);
 
         socket.on('register', (userId) => {
             console.log(`User ${userId} registering with socket ${socket.id}`);
@@ -140,9 +140,9 @@ export const initSocket = (io: Server) => {
             socketService.removeSocket(socket.id);
         });
         
-        // setInterval(() => {
-        //     console.log(`Active socket connections: ${socketService.getActiveSocketCount()}`);
-        // }, 60000);
+        setInterval(() => {
+            console.log(`Active socket connections: ${socketService.getActiveSocketCount()}`);
+        }, 60000);
     });
     
     return socketService;
