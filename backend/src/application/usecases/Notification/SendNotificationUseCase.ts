@@ -3,7 +3,7 @@ import { SocketService } from "../../../infrastructure/services/socketService";
 import { Notification } from "../../../domain/entities/Notification";
 import { Types } from "mongoose";
 
-// Define allowed notification types
+
 type NotificationType = "project" | "task" | "general" | "chat";
 
 export class SendNotificationUseCase {
