@@ -6,8 +6,8 @@ const DropdownMenu = DropdownMenuPrimitive.Root;
 const DropdownMenuTrigger = DropdownMenuPrimitive.Trigger;
 const DropdownMenuContent = DropdownMenuPrimitive.Content;
 const DropdownMenuItem = React.forwardRef<
-  HTMLDivElement, // Ref type for HTML element
-  React.ComponentPropsWithoutRef<typeof DropdownMenuPrimitive.Item> // Props type for DropdownMenuItem
+  HTMLDivElement, 
+  React.ComponentPropsWithoutRef<typeof DropdownMenuPrimitive.Item> 
 >(({ className, children, ...props }, ref) => (
   <DropdownMenuPrimitive.Item
     ref={ref}

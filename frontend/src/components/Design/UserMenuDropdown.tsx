@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useSelector, useDispatch } from 'react-redux';
 import { motion, AnimatePresence } from 'framer-motion';
 import { clearToken } from '../../redux/authSlice';
@@ -13,6 +13,7 @@ import {
   Zap,
   ChevronDown
 } from 'lucide-react';
+import { logout } from '../../services/AuthService';
 
 
 const S3_PATH = import.meta.env.VITE_AWSS3_PATH
@@ -22,9 +23,19 @@ const UserMenuDropdown = () => {
   const [activeTab, setActiveTab] = useState<'menu' | 'notifications'>('menu');
   const userData = useSelector((state: RootState) => state.auth.user);
   const dispatch = useDispatch();
+  const navigate = useNavigate();
 
-  const handleLogout = () => {
-    dispatch(clearToken());
+  const handleLogout = async () => {
+      try {
+        const response = await logout();
+        if (response && response.message === 'User logged out successfully') {
+          localStorage.removeItem('accessToken');
+          dispatch(clearToken());
+          navigate('/admin/login'); 
+        }
+      } catch (error) {
+        console.error('Logout failed:', error);
+      }
   };
 
   const menuItems = [
@@ -37,7 +48,6 @@ const UserMenuDropdown = () => {
     },
 
   ];
-
   const achievements = [
     {
       icon: Trophy,
