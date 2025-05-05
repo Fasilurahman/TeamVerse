@@ -209,7 +209,7 @@ const Messages = () => {
         formData
       );
 
-      // setMessages((prevMessages) => [...prevMessages, res.data]);
+     setMessages((prevMessages) => [...prevMessages, newMessage]);
 
       setMessageInput("");
       setFile(null);
