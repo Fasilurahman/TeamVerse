@@ -24,7 +24,7 @@ export class StripeService {
                 quantity: 1
             }],
             mode: 'subscription',
-            success_url: `${clientUrl}/success?session_id={CHECKOUT_SESSION_ID}`,
+            success_url: `https://www.teamvarse.site/success?session_id={CHECKOUT_SESSION_ID}`
             cancel_url: `${clientUrl}/cancel`,
             metadata: {
                 userId: userId
