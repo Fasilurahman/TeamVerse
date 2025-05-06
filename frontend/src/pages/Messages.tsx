@@ -167,6 +167,7 @@ const Messages = () => {
     });
 
     newSocket.on("chat-message", (newMessage) => {
+      console.log('12345678',newMessage)
       setMessages((prevMessages) => {
         if (prevMessages.some((msg) => msg._id === newMessage._id)) {
           return prevMessages;
