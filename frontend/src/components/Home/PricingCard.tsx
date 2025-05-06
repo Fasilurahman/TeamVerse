@@ -77,8 +77,9 @@ export function PricingCard({ id,title, price, billingCycle, description, featur
     try {
       localStorage.setItem("isPaymentProcessing", "true");
       setIsPaymentProcessing(true);
-  
+      console.log('payment is processing')
       const url = await createCheckoutSession(priceId);
+      console.log(url,'urlllllllllllllllllllllllllll');
       localStorage.removeItem("isPaymentProcessing");
       setIsPaymentProcessing(false);
       console.log(url,'urlllllllllllllllllllllllllll');
