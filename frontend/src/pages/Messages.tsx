@@ -210,7 +210,12 @@ const Messages = () => {
         formData
       );
 
-     setMessages((prevMessages) => [...prevMessages, newMessage]);
+     if (socket) {
+      socket.emit("send-message", {
+        chatId: activeChat,
+        message: newMessage, // must match backend expectations
+      });
+    }
 
       setMessageInput("");
       setFile(null);
