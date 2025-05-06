@@ -81,6 +81,7 @@ export function PricingCard({ id,title, price, billingCycle, description, featur
       const url = await createCheckoutSession(priceId);
       localStorage.removeItem("isPaymentProcessing");
       setIsPaymentProcessing(false);
+      console.log(url,'urlllllllllllllllllllllllllll');
       window.location.href = url;
     } catch (error) {
       console.error("Checkout failed", error);
