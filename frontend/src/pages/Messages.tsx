@@ -150,7 +150,7 @@ const Messages = () => {
 
   // ✅ Setup Socket.io
   useEffect(() => {
-    const newSocket = io(import.meta.env.VITE_BACKEND_URL);
+    const newSocket = io(import.meta.env.VITE_BACKEND_SOCKET_URL);
     setSocket(newSocket);
 
     newSocket.on("connect", () => {
