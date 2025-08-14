@@ -3,10 +3,12 @@ import { z } from "zod";
 export const subtaskSchema = z.object({
   title: z
     .string()
-    .min(3, { message: "Title must be at least 3 characters long" }),
+    .min(3, { message: "Title must be at least 3 characters long" })
+    .max(20, { message: "Title must not exceed 20 characters" }),
   description: z
     .string()
-    .min(5, { message: "Description must be at least 5 characters long" }),
+    .min(5, { message: "Description must be at least 5 characters long" })
+    .max(1000, { message: "Description must not exceed 1000 characters" }),
   status: z.enum(["todo", "in-progress", "completed"], {
     message: "Invalid status",
   }),
@@ -22,10 +24,12 @@ export const subtaskSchema = z.object({
 export const updateSubtaskSchema = z.object({
   title: z
     .string()
-    .min(3, { message: "Title must be at least 3 characters long" }),
+    .min(3, { message: "Title must be at least 3 characters long" })
+    .max(100, { message: "Title must not exceed 100 characters" }),
   description: z
     .string()
-    .min(5, { message: "Description must be at least 5 characters long" }),
+    .min(5, { message: "Description must be at least 5 characters long" })
+    .max(1000, { message: "Description must not exceed 1000 characters" }),
   status: z.enum(["todo", "in-progress", "review", "completed"], {
     message: "Invalid status",
   }),
