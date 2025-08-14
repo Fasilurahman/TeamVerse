@@ -1,23 +1,41 @@
-import React, { useEffect, useState } from 'react';
-import { CheckCircle2, Globe, Lock, Folder } from 'lucide-react';
-import type { NewMeetingFormData, IProjectWithTeamAndMembers } from '../../types';
+import React, { useEffect, useState } from "react";
+import { CheckCircle2, Globe, Lock, Folder } from "lucide-react";
+import { z } from "zod";
+import type { NewMeetingFormData, IProjectWithTeamAndMembers } from "../../types";
+
+
+const NewMeetingFormSchema = z.object({
+  title: z.string().min(1, "Meeting title is required"),
+  projectId: z.string().min(1, "Project is required"),
+  date: z.string().min(1, "Date is required").regex(/^\d{4}-\d{2}-\d{2}$/, "Invalid date format"),
+  time: z.string().min(1, "Time is required").regex(/^\d{2}:\d{2}$/, "Invalid time format"),
+  duration: z.enum(["0.5", "1", "1.5", "2"], {
+    errorMap: () => ({ message: "Duration must be 30 minutes, 1 hour, 1.5 hours, or 2 hours" }),
+  }),
+  privacy: z.enum(["public", "private"], {
+    errorMap: () => ({ message: "Privacy must be either public or private" }),
+  }),
+  description: z.string().optional(),
+  createdBy: z.string().min(1, "Creator ID is required"),
+  teamMembers: z.array(z.string()).optional(),
+});
 
 interface NewMeetingFormProps {
-  onSubmit: (formData: NewMeetingFormData) => void;
+  onSubmit: (formData: NewMeetingFormData) => Promise<void>;
   onCancel: () => void;
   projects: IProjectWithTeamAndMembers[];
   currentUserId: string;
 }
 
 const formInitialState: NewMeetingFormData = {
-  title: '',
-  projectId: '',
-  date: '',
-  time: '',
-  duration: '1',
-  privacy: 'public',
-  description: '',
-  createdBy: '',
+  title: "",
+  projectId: "",
+  date: "",
+  time: "",
+  duration: "1",
+  privacy: "public",
+  description: "",
+  createdBy: "",
   teamMembers: [],
 };
 
@@ -25,32 +43,55 @@ export const NewMeetingForm: React.FC<NewMeetingFormProps> = ({
   onSubmit,
   onCancel,
   projects,
-  currentUserId
+  currentUserId,
 }) => {
   const [formData, setFormData] = useState<NewMeetingFormData>(formInitialState);
+  const [errors, setErrors] = useState<Partial<Record<keyof NewMeetingFormData, string>>>({});
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
   useEffect(() => {
     if (currentUserId) {
       setFormData((prev:any) => ({
         ...prev,
         createdBy: currentUserId,
       }));
+      // Validate createdBy in real-time
+      try {
+        NewMeetingFormSchema.shape.createdBy.parse(currentUserId);
+        setErrors((prev) => ({ ...prev, createdBy: undefined }));
+      } catch (err) {
+        if (err instanceof z.ZodError) {
+          setErrors((prev) => ({ ...prev, createdBy: err.errors[0].message }));
+        }
+      }
     }
   }, [currentUserId]);
 
   useEffect(() => {
-    const selectedProject = projects.find((p: any) => p._id === formData.projectId);
+    const selectedProject = projects.find((p) => p._id === formData.projectId);
     if (selectedProject) {
-      setFormData((prev: any) => ({
+      setFormData((prev) => ({
         ...prev,
-        teamMembers: selectedProject?.teamMembers.map((member: any) => member._id),
+        teamMembers: selectedProject.teamMembers.map((member) => member._id),
+      }));
+    } else {
+      setFormData((prev) => ({
+        ...prev,
+        teamMembers: [],
       }));
     }
+    // Validate teamMembers in real-time
+    try {
+      NewMeetingFormSchema.shape.teamMembers.parse(
+        selectedProject ? selectedProject.teamMembers.map((member) => member._id) : []
+      );
+      setErrors((prev) => ({ ...prev, teamMembers: undefined }));
+    } catch (err) {
+      if (err instanceof z.ZodError) {
+        setErrors((prev) => ({ ...prev, teamMembers: err.errors[0].message }));
+      }
+    }
   }, [formData.projectId, projects]);
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    onSubmit(formData);
-  };
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>
@@ -60,9 +101,41 @@ export const NewMeetingForm: React.FC<NewMeetingFormProps> = ({
       ...prev,
       [name]: value,
     }));
+    // Validate field in real-time
+    try {
+      NewMeetingFormSchema.shape[name as keyof NewMeetingFormData].parse(value);
+      setErrors((prev) => ({ ...prev, [name]: undefined }));
+    } catch (err) {
+      if (err instanceof z.ZodError) {
+        setErrors((prev) => ({ ...prev, [name]: err.errors[0].message }));
+      }
+    }
   };
 
-  
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+    try {
+      // Validate entire form data
+      NewMeetingFormSchema.parse(formData);
+      setErrors({});
+      await onSubmit(formData);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        const fieldErrors: Partial<Record<keyof NewMeetingFormData, string>> = {};
+        error.errors.forEach((err) => {
+          const path = err.path[0] as keyof NewMeetingFormData;
+          fieldErrors[path] = err.message;
+        });
+        setErrors(fieldErrors);
+      } else {
+        console.error("Unexpected error during submission:", error);
+        setErrors({ title: "An unexpected error occurred" });
+      }
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
@@ -76,10 +149,14 @@ export const NewMeetingForm: React.FC<NewMeetingFormProps> = ({
             name="title"
             value={formData.title}
             onChange={handleChange}
-            className="w-full px-4 py-2 bg-slate-800/50 border border-slate-700/50 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/50 text-white"
+            className={`w-full px-4 py-2 bg-slate-800/50 border ${
+              errors.title ? "border-red-500" : "border-slate-700/50"
+            } rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/50 text-white`}
             placeholder="Enter meeting title"
-            required
           />
+          {errors.title && (
+            <p className="mt-1 text-sm text-red-500">{errors.title}</p>
+          )}
         </div>
 
         <div>
@@ -91,12 +168,13 @@ export const NewMeetingForm: React.FC<NewMeetingFormProps> = ({
               name="projectId"
               value={formData.projectId}
               onChange={handleChange}
-              className="w-full px-4 py-2 bg-slate-800/50 border border-slate-700/50 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/50 text-white appearance-none"
-              required
+              className={`w-full px-4 py-2 bg-slate-800/50 border ${
+                errors.projectId ? "border-red-500" : "border-slate-700/50"
+              } rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/50 text-white appearance-none`}
             >
               <option value="">Select a project</option>
-              {projects.map((project,index) => (
-                <option key={index} value={project._id}>
+              {projects.map((project) => (
+                <option key={project._id} value={project._id}>
                   {project.name}
                 </option>
               ))}
@@ -104,6 +182,9 @@ export const NewMeetingForm: React.FC<NewMeetingFormProps> = ({
             <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
               <Folder className="w-4 h-4 text-slate-400" />
             </div>
+            {errors.projectId && (
+              <p className="mt-1 text-sm text-red-500">{errors.projectId}</p>
+            )}
           </div>
         </div>
 
@@ -117,9 +198,13 @@ export const NewMeetingForm: React.FC<NewMeetingFormProps> = ({
               name="date"
               value={formData.date}
               onChange={handleChange}
-              className="w-full px-4 py-2 bg-slate-800/50 border border-slate-700/50 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/50 text-white"
-              required
+              className={`w-full px-4 py-2 bg-slate-800/50 border ${
+                errors.date ? "border-red-500" : "border-slate-700/50"
+              } rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/50 text-white`}
             />
+            {errors.date && (
+              <p className="mt-1 text-sm text-red-500">{errors.date}</p>
+            )}
           </div>
           <div>
             <label className="block text-sm font-medium text-slate-300 mb-2">
@@ -130,9 +215,13 @@ export const NewMeetingForm: React.FC<NewMeetingFormProps> = ({
               name="time"
               value={formData.time}
               onChange={handleChange}
-              className="w-full px-4 py-2 bg-slate-800/50 border border-slate-700/50 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/50 text-white"
-              required
+              className={`w-full px-4 py-2 bg-slate-800/50 border ${
+                errors.time ? "border-red-500" : "border-slate-700/50"
+              } rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/50 text-white`}
             />
+            {errors.time && (
+              <p className="mt-1 text-sm text-red-500">{errors.time}</p>
+            )}
           </div>
         </div>
 
@@ -144,13 +233,18 @@ export const NewMeetingForm: React.FC<NewMeetingFormProps> = ({
             name="duration"
             value={formData.duration}
             onChange={handleChange}
-            className="w-full px-4 py-2 bg-slate-800/50 border border-slate-700/50 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/50 text-white"
+            className={`w-full px-4 py-2 bg-slate-800/50 border ${
+              errors.duration ? "border-red-500" : "border-slate-700/50"
+            } rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/50 text-white`}
           >
             <option value="0.5">30 minutes</option>
             <option value="1">1 hour</option>
             <option value="1.5">1.5 hours</option>
             <option value="2">2 hours</option>
           </select>
+          {errors.duration && (
+            <p className="mt-1 text-sm text-red-500">{errors.duration}</p>
+          )}
         </div>
 
         <div>
@@ -163,9 +257,11 @@ export const NewMeetingForm: React.FC<NewMeetingFormProps> = ({
                 type="radio"
                 name="privacy"
                 value="public"
-                checked={formData.privacy === 'public'}
+                checked={formData.privacy === "public"}
                 onChange={handleChange}
-                className="text-indigo-500 focus:ring-indigo-500/50"
+                className={`text-indigo-500 focus:ring-indigo-500/50 ${
+                  errors.privacy ? "border-red-500" : ""
+                }`}
               />
               <Globe className="w-4 h-4 text-slate-400" />
               <span className="text-slate-300">Public</span>
@@ -175,14 +271,19 @@ export const NewMeetingForm: React.FC<NewMeetingFormProps> = ({
                 type="radio"
                 name="privacy"
                 value="private"
-                checked={formData.privacy === 'private'}
+                checked={formData.privacy === "private"}
                 onChange={handleChange}
-                className="text-indigo-500 focus:ring-indigo-500/50"
+                className={`text-indigo-500 focus:ring-indigo-500/50 ${
+                  errors.privacy ? "border-red-500" : ""
+                }`}
               />
               <Lock className="w-4 h-4 text-slate-400" />
               <span className="text-slate-300">Private</span>
             </label>
           </div>
+          {errors.privacy && (
+            <p className="mt-1 text-sm text-red-500">{errors.privacy}</p>
+          )}
         </div>
 
         <div>
@@ -196,7 +297,14 @@ export const NewMeetingForm: React.FC<NewMeetingFormProps> = ({
             className="w-full px-4 py-2 bg-slate-800/50 border border-slate-700/50 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/50 text-white h-24 resize-none"
             placeholder="Enter meeting description"
           />
+          {errors.description && (
+            <p className="mt-1 text-sm text-red-500">{errors.description}</p>
+          )}
         </div>
+
+        {errors.teamMembers && (
+          <p className="text-sm text-red-500">{errors.teamMembers}</p>
+        )}
       </div>
 
       <div className="flex justify-end gap-4">
@@ -209,10 +317,13 @@ export const NewMeetingForm: React.FC<NewMeetingFormProps> = ({
         </button>
         <button
           type="submit"
-          className="px-4 py-2 bg-indigo-500 text-white rounded-lg hover:bg-indigo-600 flex items-center gap-2"
+          disabled={isSubmitting}
+          className={`px-4 py-2 bg-indigo-500 text-white rounded-lg hover:bg-indigo-600 flex items-center gap-2 ${
+            isSubmitting ? "opacity-50 cursor-not-allowed" : ""
+          }`}
         >
           <CheckCircle2 className="w-4 h-4" />
-          Create Meeting
+          {isSubmitting ? "Creating..." : "Create Meeting"}
         </button>
       </div>
     </form>
