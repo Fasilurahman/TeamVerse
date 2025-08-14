@@ -3,11 +3,24 @@ import { Search, Plus, Edit2, Trash2, Crown, Check, Users, CreditCard, Zap, Star
 import { motion, AnimatePresence } from "framer-motion";
 import Sidebar from '../components/Design/Sidebar';
 import { toast } from "sonner";
-import api from '../api/axiosInstance'
+import api from '../api/axiosInstance';
 import { deleteSubscriptionPlan, getAllSubscriptionsPlans } from "../services/SubscriptionService";
 import { Subscription } from "../types";
+import { z } from "zod";
 
 
+const subscriptionSchema = z.object({
+  name: z.string().min(1, "Name is required").max(20, "Name must be 100 characters or less"),
+  price: z.number().min(0, "Price cannot be negative"),
+  billingCycle: z.enum(["month", "year"], {
+    errorMap: () => ({ message: "Billing cycle must be 'month' or 'year'" })
+  }),
+  features: z.array(z.string().min(1, "Feature cannot be empty")).min(1, "At least one feature is required"),
+  isPopular: z.boolean(),
+  color: z.string().regex(/^#[0-9A-Fa-f]{6}$/, "Invalid color format"),
+  description: z.string().min(1, "Description is required").max(500, "Description must be 500 characters or less"),
+  recommendedFor: z.string().min(1, "Recommended for is required").max(200, "Recommended for must be 200 characters or less"),
+});
 
 type SubscriptionModalProps = {
   isOpen: boolean;
@@ -31,7 +44,6 @@ const StatCard = ({ title, value, icon: Icon, color }: { title: string; value: s
 );
 
 const SubscriptionModal: React.FC<SubscriptionModalProps> = ({ isOpen, onClose, subscription, onSave }) => {
-  
   const [formData, setFormData] = useState<Partial<Subscription>>({
     name: "",
     price: 0,
@@ -42,12 +54,11 @@ const SubscriptionModal: React.FC<SubscriptionModalProps> = ({ isOpen, onClose, 
     description: "",
     recommendedFor: ""
   });
-
   const [newFeature, setNewFeature] = useState("");
   const [currentStep, setCurrentStep] = useState(1);
+  const [errors, setErrors] = useState<Partial<Record<keyof Subscription, string>>>({});
 
-// One effect for form data initialization
-useEffect(() => {
+  useEffect(() => {
     if (subscription) {
       setFormData(subscription);
     } else {
@@ -62,55 +73,100 @@ useEffect(() => {
         recommendedFor: ""
       });
     }
+    setErrors({});
   }, [subscription]);
-  
+
   useEffect(() => {
     if (isOpen) {
       setCurrentStep(1);
     }
   }, [isOpen]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-
-    e.preventDefault();
-    
-    console.log("formData:", formData);
-    console.log(subscription ? "Updating subscription..." : "Creating new subscription...");
-  
+  const validateStep = (step: number) => {
     try {
-      const url = subscription 
-        ? `/subscriptions/${subscription._id}` 
-        : "/subscriptions";                    
-  
-      const method = subscription ? "put" : "post"; 
-  
-      const response = await api({
-        method,
-        url,
-        data: formData,
-        headers: {
-          "Content-Type": "application/json",
-        },
-      });
-  
-  
-      onSave(response.data); 
-      
-      onClose(); 
+      const partialSchema = subscriptionSchema.partial();
+      const fieldsToValidate = {
+        1: ['name', 'description', 'recommendedFor'],
+        2: ['price', 'billingCycle', 'color'],
+        3: ['features', 'isPopular']
+      }[step] as (keyof typeof subscriptionSchema._type)[];
+
+      const stepSchema = partialSchema.pick(
+        fieldsToValidate.reduce((acc, field) => ({ ...acc, [field]: true }), {})
+      );
+
+      stepSchema.parse(formData);
+      setErrors({});
+      return true;
     } catch (error) {
-      console.error("Error:", error);
-      toast.error("Error saving subscription. Please try again.");
+      if (error instanceof z.ZodError) {
+        const newErrors: Partial<Record<keyof Subscription, string>> = {};
+        error.errors.forEach((err) => {
+          if (err.path[0]) {
+            newErrors[err.path[0] as keyof Subscription] = err.message;
+          }
+        });
+        setErrors(newErrors);
+        return false;
+      }
+      return false;
     }
   };
-  
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    try {
+      subscriptionSchema.parse(formData);
+      setErrors({});
+
+      console.log("formData:", formData);
+      console.log(subscription ? "Updating subscription..." : "Creating new subscription...");
+
+      try {
+        const url = subscription 
+          ? `/subscriptions/${subscription._id}` 
+          : "/subscriptions";                    
+
+        const method = subscription ? "put" : "post"; 
+
+        const response = await api({
+          method,
+          url,
+          data: formData,
+          headers: {
+            "Content-Type": "application/json",
+          },
+        });
+
+        onSave(response.data); 
+        onClose(); 
+      } catch (error) {
+        console.error("Error:", error);
+        toast.error("Error saving subscription. Please try again.");
+      }
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        const newErrors: Partial<Record<keyof Subscription, string>> = {};
+        error.errors.forEach((err) => {
+          if (err.path[0]) {
+            newErrors[err.path[0] as keyof Subscription] = err.message;
+          }
+        });
+        setErrors(newErrors);
+        toast.error("Please correct the form errors");
+      }
+    }
+  };
 
   const handleNext = (e: React.FormEvent) => {
     if (e) e.preventDefault();
     
-    setCurrentStep((prev) => {
-      const newStep = Math.min(prev + 1, 3);
-      return newStep;
-    });
+    if (validateStep(currentStep)) {
+      setCurrentStep((prev) => Math.min(prev + 1, 3));
+    } else {
+      toast.error("Please correct the form errors");
+    }
   };
 
   const handlePrevious = () => {
@@ -118,12 +174,19 @@ useEffect(() => {
   };
 
   const addFeature = () => {
-    if (newFeature.trim() && formData.features) {
-      setFormData({
-        ...formData,
-        features: [...formData.features, newFeature.trim()]
-      });
+    if (newFeature.trim()) {
+      const newFeatures = [...(formData.features || []), newFeature.trim()];
+      setFormData({ ...formData, features: newFeatures });
       setNewFeature("");
+      // Validate features immediately
+      try {
+        subscriptionSchema.shape.features.parse(newFeatures);
+        setErrors((prev) => ({ ...prev, features: undefined }));
+      } catch (error) {
+        if (error instanceof z.ZodError) {
+          setErrors((prev) => ({ ...prev, features: error.errors[0].message }));
+        }
+      }
     }
   };
 
@@ -132,6 +195,15 @@ useEffect(() => {
       const newFeatures = [...formData.features];
       newFeatures.splice(index, 1);
       setFormData({ ...formData, features: newFeatures });
+      // Validate features after removal
+      try {
+        subscriptionSchema.shape.features.parse(newFeatures);
+        setErrors((prev) => ({ ...prev, features: undefined }));
+      } catch (error) {
+        if (error instanceof z.ZodError) {
+          setErrors((prev) => ({ ...prev, features: error.errors[0].message }));
+        }
+      }
     }
   };
 
@@ -147,20 +219,30 @@ useEffect(() => {
               <input
                 type="text"
                 value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                className="w-full bg-[#111827] text-white px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
-                required
+                onChange={(e) => {
+                  setFormData({ ...formData, name: e.target.value });
+                  setErrors((prev) => ({ ...prev, name: undefined }));
+                }}
+                className={`w-full bg-[#111827] text-white px-4 py-2 rounded-lg focus:outline-none focus:ring-2 ${
+                  errors.name ? 'focus:ring-red-500 border-red-500' : 'focus:ring-purple-500'
+                }`}
               />
+              {errors.name && <p className="text-red-500 text-sm mt-1">{errors.name}</p>}
             </div>
             
             <div>
               <label className="block text-gray-400 mb-2">Description</label>
               <textarea
                 value={formData.description}
-                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                className="w-full bg-[#111827] text-white px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 h-24"
-                required
+                onChange={(e) => {
+                  setFormData({ ...formData, description: e.target.value });
+                  setErrors((prev) => ({ ...prev, description: undefined }));
+                }}
+                className={`w-full bg-[#111827] text-white px-4 py-2 rounded-lg focus:outline-none focus:ring-2 ${
+                  errors.description ? 'focus:ring-red-500 border-red-500' : 'focus:ring-purple-500'
+                } h-24`}
               />
+              {errors.description && <p className="text-red-500 text-sm mt-1">{errors.description}</p>}
             </div>
 
             <div>
@@ -168,11 +250,16 @@ useEffect(() => {
               <input
                 type="text"
                 value={formData.recommendedFor}
-                onChange={(e) => setFormData({ ...formData, recommendedFor: e.target.value })}
-                className="w-full bg-[#111827] text-white px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+                onChange={(e) => {
+                  setFormData({ ...formData, recommendedFor: e.target.value });
+                  setErrors((prev) => ({ ...prev, recommendedFor: undefined }));
+                }}
+                className={`w-full bg-[#111827] text-white px-4 py-2 rounded-lg focus:outline-none focus:ring-2 ${
+                  errors.recommendedFor ? 'focus:ring-red-500 border-red-500' : 'focus:ring-purple-500'
+                }`}
                 placeholder="e.g., Small Teams, Enterprise, Startups"
-                required
               />
+              {errors.recommendedFor && <p className="text-red-500 text-sm mt-1">{errors.recommendedFor}</p>}
             </div>
           </div>
         );
@@ -186,6 +273,7 @@ useEffect(() => {
                 onChange={(e) => {
                   if (e.target.value === "Free") {
                     setFormData({ ...formData, price: 0 });
+                    setErrors((prev) => ({ ...prev, price: undefined }));
                   } else {
                     setFormData({ ...formData, price: undefined }); 
                   }
@@ -197,31 +285,42 @@ useEffect(() => {
               </select>
 
               {formData.price !== 0 && (
-                <input
-                  type="number"
-                  value={formData.price || ""}
-                  onChange={(e) => {
-                    const value = e.target.value;
-                    if (!isNaN(Number(value)) && Number(value) >= 0) {
-                      setFormData({ ...formData, price: Number(value) });
-                    }
-                  }}
-                  className="w-full bg-[#111827] text-white px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
-                  placeholder="Enter price"
-                  required
-                />
+                <div>
+                  <input
+                    type="number"
+                    value={formData.price || ""}
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      if (!isNaN(Number(value)) && Number(value) >= 0) {
+                        setFormData({ ...formData, price: Number(value) });
+                        setErrors((prev) => ({ ...prev, price: undefined }));
+                      }
+                    }}
+                    className={`w-full bg-[#111827] text-white px-4 py-2 rounded-lg focus:outline-none focus:ring-2 ${
+                      errors.price ? 'focus:ring-red-500 border-red-500' : 'focus:ring-purple-500'
+                    }`}
+                    placeholder="Enter price"
+                  />
+                  {errors.price && <p className="text-red-500 text-sm mt-1">{errors.price}</p>}
+                </div>
               )}
             </div>
             <div>
               <label className="block text-gray-400 mb-2">Billing Cycle</label>
               <select
                 value={formData.billingCycle}
-                onChange={(e) => setFormData({ ...formData, billingCycle: e.target.value as "month" | "year" })}
-                className="w-full bg-[#111827] text-white px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+                onChange={(e) => {
+                  setFormData({ ...formData, billingCycle: e.target.value as "month" | "year" });
+                  setErrors((prev) => ({ ...prev, billingCycle: undefined }));
+                }}
+                className={`w-full bg-[#111827] text-white px-4 py-2 rounded-lg focus:outline-none focus:ring-2 ${
+                  errors.billingCycle ? 'focus:ring-red-500 border-red-500' : 'focus:ring-purple-500'
+                }`}
               >
                 <option value="month">Monthly</option>
                 <option value="year">Yearly</option>
               </select>
+              {errors.billingCycle && <p className="text-red-500 text-sm mt-1">{errors.billingCycle}</p>}
             </div>
 
             <div>
@@ -229,9 +328,13 @@ useEffect(() => {
               <input
                 type="color"
                 value={formData.color}
-                onChange={(e) => setFormData({ ...formData, color: e.target.value })}
+                onChange={(e) => {
+                  setFormData({ ...formData, color: e.target.value });
+                  setErrors((prev) => ({ ...prev, color: undefined }));
+                }}
                 className="w-full h-10 bg-[#111827] rounded-lg cursor-pointer"
               />
+              {errors.color && <p className="text-red-500 text-sm mt-1">{errors.color}</p>}
             </div>
           </div>
         );
@@ -257,6 +360,7 @@ useEffect(() => {
                   Add
                 </button>
               </div>
+              {errors.features && <p className="text-red-500 text-sm mt-1">{errors.features}</p>}
               <div className="space-y-2 max-h-60 overflow-y-auto">
                 {formData.features?.map((feature, index) => (
                   <motion.div
@@ -283,11 +387,15 @@ useEffect(() => {
               <input
                 type="checkbox"
                 checked={formData.isPopular}
-                onChange={(e) => setFormData({ ...formData, isPopular: e.target.checked })}
+                onChange={(e) => {
+                  setFormData({ ...formData, isPopular: e.target.checked });
+                  setErrors((prev) => ({ ...prev, isPopular: undefined }));
+                }}
                 className="w-4 h-4 rounded text-purple-500 focus:ring-purple-500"
               />
               <label className="text-gray-400">Mark as Popular</label>
             </div>
+            {errors.isPopular && <p className="text-red-500 text-sm mt-1">{errors.isPopular}</p>}
           </div>
         );
       default:
@@ -386,19 +494,18 @@ useEffect(() => {
 function SubscriptionsPage() {
   const [subscriptions, setSubscriptions] = useState<Subscription[]>([]);
 
-  useEffect(()=>{
+  useEffect(() => {
     const fetchSubscriptions = async () => {
       try {
         const result = await getAllSubscriptionsPlans();
-        console.log(result,'response data');
-        setSubscriptions(result)
+        console.log(result, 'response data');
+        setSubscriptions(result);
       } catch (error) {
-        console.error(error,'error');
-        
+        console.error(error, 'error');
       }
-    }
-    fetchSubscriptions()
-  },[])
+    };
+    fetchSubscriptions();
+  }, []);
 
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedSubscription, setSelectedSubscription] = useState<Subscription | null>(null);
@@ -418,37 +525,41 @@ function SubscriptionsPage() {
     setIsModalOpen(true);
   };
 
-  const handleDeleteSubscription = async(id: string) => {
-    console.log(id,'id')
-    console.log(subscriptions,'subscription')
-      try { 
-        const result = await deleteSubscriptionPlan(id);
-        console.log(result,'result')
-        setSubscriptions(subscriptions.filter(sub => sub._id !== id));
-        toast.success('Subscription deleted successfully')
-      } catch (error) {
-        console.error("Error deleting subscription plan:", error);
-      }
-    
+  const handleDeleteSubscription = async (id: string) => {
+    console.log(id, 'id');
+    console.log(subscriptions, 'subscription');
+    try {
+      const result = await deleteSubscriptionPlan(id);
+      console.log(result, 'result');
+      setSubscriptions(subscriptions.filter(sub => sub._id !== id));
+      toast.success('Subscription deleted successfully');
+    } catch (error) {
+      console.error("Error deleting subscription plan:", error);
+    }
   };
 
   const handleSaveSubscription = (subscriptionData: Partial<Subscription>) => {
-    if (selectedSubscription) {
-      // Update existing subscription
-      console.log(subscriptionData,'subscriptionData')
-      console.log(selectedSubscription,'selectedSubscription')
-      setSubscriptions(subscriptions.map(sub =>
-        sub._id === selectedSubscription._id ? { ...sub, ...subscriptionData } : sub
-      ));
-      
-    } else {
-      // Create new subscription
-      const newSubscription = {
-        ...subscriptionData,
-        id: Math.random().toString(36).substr(2, 9),
-        activeUsers: 0
-      } as Subscription;
-      setSubscriptions([...subscriptions, newSubscription]);
+    try {
+      subscriptionSchema.parse(subscriptionData);
+      if (selectedSubscription) {
+        console.log(subscriptionData, 'subscriptionData');
+        console.log(selectedSubscription, 'selectedSubscription');
+        setSubscriptions(subscriptions.map(sub =>
+          sub._id === selectedSubscription._id ? { ...sub, ...subscriptionData } : sub
+        ));
+      } else {
+        const newSubscription = {
+          ...subscriptionData,
+          id: Math.random().toString(36).substr(2, 9),
+          activeUsers: 0
+        } as Subscription;
+        setSubscriptions([...subscriptions, newSubscription]);
+      }
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        console.error("Validation error in handleSaveSubscription:", error.errors);
+        toast.error("Invalid subscription data");
+      }
     }
   };
 
