@@ -263,14 +263,14 @@ const Meetings: React.FC = () => {
               </p>
               <div className="flex justify-center gap-4">
                 <Link
-                  to="/dashboard/settings/subscription"
+                  to="/home"
                   className="px-6 py-3 bg-indigo-500 hover:bg-indigo-600 text-white rounded-lg transition-colors duration-200 flex items-center gap-2"
                 >
                   <Zap className="w-5 h-5" />
                   Upgrade Subscription
                 </Link>
                 <Link
-                  to="/dashboard"
+                  to="/home"
                   className="px-6 py-3 bg-slate-700/50 hover:bg-slate-700 text-white rounded-lg transition-colors duration-200"
                 >
                   Go to Dashboard
