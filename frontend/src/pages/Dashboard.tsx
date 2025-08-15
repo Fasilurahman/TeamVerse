@@ -3,6 +3,7 @@ import { useSelector } from "react-redux";
 import { motion } from "framer-motion";
 import SidebarNav from "../components/dashboard/Sidebar";
 import { styles } from "../styles/styles";
+import { useNavigate } from "react-router-dom";
 import {
   Bell,
   Search,
@@ -56,7 +57,12 @@ function Dashboard() {
   
   
   const { user } = useSelector((state: RootState) => state.auth);
-  console.log(user, "user");
+
+  const navigate = useNavigate();
+
+  const handleClick = () => {
+    navigate('/home');
+  };
 
   
   const fetchDashboard = async (id: string) => {
@@ -124,6 +130,7 @@ function Dashboard() {
           <motion.div
             className="flex items-center gap-3"
             whileHover={{ scale: 1.02 }}
+            onClick={handleClick}
           >
             <div className="relative">
               <div className="absolute inset-0 bg-indigo-500/20 rounded-xl blur-xl"></div>
